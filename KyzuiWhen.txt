@@ -1,0 +1,16 @@
+## Title: KyzuiWhen
+## My testing grounds
+## Author: Kyzeragon
+## Version: 1.0.0
+## APIVersion: 100032
+## DependsOn:
+
+## Just to make sure loading occurs after pChat load, for debug messaging purposes
+## OptionalDependsOn: pChat
+
+## SavedVariables: KyzuiWhenSavedVariables
+
+modules/ChatSpam.lua
+
+KyzuiWhen.lua
+KyzuiWhen.xml
