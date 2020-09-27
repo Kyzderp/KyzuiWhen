@@ -66,7 +66,7 @@ function KyzuiWhen:dbg(msg)
     if (not msg) then return end
     if (not KyzuiWhen.savedOptions.general.debug) then return end
     if (CHAT_SYSTEM.primaryContainer) then
-        d(msg)
+        d("[KW] " .. msg)
     else
         KyzuiWhen.messages[#KyzuiWhen.messages + 1] = msg
     end
@@ -83,34 +83,34 @@ function KyzuiWhen.handleCommand(argString)
     end
 
     if (length == 0) then
-        CHAT_SYSTEM:AddMessage("Usage: /kw <show||debug||alkosh||colossus>")
+        KyzuiWhen:dbg("Usage: /kw <show||debug||alkosh||colossus>")
         return
     end
 
     -- ez print the stuff
     if (args[1] == "show") then
-        CHAT_SYSTEM:AddMessage(string.format("All debug: %s", KyzuiWhen.savedOptions.general.debug and "|c00FF00on|r" or "|cFF0000off|r"))
-        CHAT_SYSTEM:AddMessage(string.format("Alkosh: %s", KyzuiWhen.savedOptions.alkosh.enable and "|c00FF00on|r" or "|cFF0000off|r"))
-        CHAT_SYSTEM:AddMessage(string.format("Colossus: %s", KyzuiWhen.savedOptions.colossus.enable and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("All debug: %s", KyzuiWhen.savedOptions.general.debug and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("Alkosh: %s", KyzuiWhen.savedOptions.alkosh.enable and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("Colossus: %s", KyzuiWhen.savedOptions.colossus.enable and "|c00FF00on|r" or "|cFF0000off|r"))
 
     -- Toggle debug
     elseif (args[1] == "debug") then
         KyzuiWhen.savedOptions.general.debug = not KyzuiWhen.savedOptions.general.debug
-        CHAT_SYSTEM:AddMessage("Debug (more like all printing) is now " .. tostring(KyzuiWhen.savedOptions.general.debug))
+        KyzuiWhen:dbg("Debug (more like all printing) is now " .. tostring(KyzuiWhen.savedOptions.general.debug))
 
     -- Toggle alkosh
     elseif (args[1] == "alkosh") then
         KyzuiWhen.savedOptions.alkosh.enable = not KyzuiWhen.savedOptions.alkosh.enable
-        CHAT_SYSTEM:AddMessage("Alkosh value chat spam is now " .. tostring(KyzuiWhen.savedOptions.alkosh.enable))
+        KyzuiWhen:dbg("Alkosh value chat spam is now " .. tostring(KyzuiWhen.savedOptions.alkosh.enable))
 
     -- Toggle colossus
     elseif (args[1] == "colossus") then
         KyzuiWhen.savedOptions.colossus.enable = not KyzuiWhen.savedOptions.colossus.enable
-        CHAT_SYSTEM:AddMessage("Colossus invulnerability chat spam is now " .. tostring(KyzuiWhen.savedOptions.colossus.enable))
+        KyzuiWhen:dbg("Colossus invulnerability chat spam is now " .. tostring(KyzuiWhen.savedOptions.colossus.enable))
 
     -- Unknown
     else
-        CHAT_SYSTEM:AddMessage("Usage: /kw <debug>")
+        KyzuiWhen:dbg("Usage: /kw <debug>")
     end
 end
 
