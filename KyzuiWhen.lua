@@ -21,6 +21,9 @@ local defaultOptions = {
     block = {
         itemNotReady = false,
     },
+    score = {
+        enable = true,
+    },
 }
 
 local defaultValues = {
@@ -86,7 +89,7 @@ function KyzuiWhen.handleCommand(argString)
     end
 
     if (length == 0) then
-        KyzuiWhen:dbg("Usage: /kw <show || debug || alkosh || colossus || itemnotready>")
+        KyzuiWhen:dbg("Usage: /kw <show || debug || alkosh || colossus || itemnotready || score>")
         return
     end
 
@@ -115,6 +118,11 @@ function KyzuiWhen.handleCommand(argString)
     elseif (args[1] == "itemnotready") then
         KyzuiWhen.savedOptions.block.itemNotReady = not KyzuiWhen.savedOptions.block.itemNotReady
         KyzuiWhen:dbg("Blocking \"Item not ready yet\" alert is now " .. tostring(KyzuiWhen.savedOptions.block.itemNotReady))
+
+    -- Toggle score
+    elseif (args[1] == "score") then
+        KyzuiWhen.savedOptions.score.enable = not KyzuiWhen.savedOptions.score.enable
+        KyzuiWhen:dbg("Score chat spam is now " .. tostring(KyzuiWhen.savedOptions.score.enable))
 
     -- Unknown
     else

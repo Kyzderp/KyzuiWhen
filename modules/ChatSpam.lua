@@ -1,5 +1,26 @@
 ChatSpam = {
     units = {}, -- Attempt to cache unitIds to see what units get Alkosh/etc
+
+    pointReason = {
+        [0]  = "KILL_NOXP_MONSTER",
+        [1]  = "KILL_NORMAL_MONSTER",
+        [2]  = "KILL_BANNERMEN",
+        [3]  = "KILL_CHAMPION",
+        [4]  = "KILL_MINIBOSS",
+        [5]  = "KILL_BOSS",
+        [6]  = "BONUS_ACTIVITY_LOW",
+        [7]  = "BONUS_ACTIVITY_MEDIUM",
+        [8]  = "BONUS_ACTIVITY_HIGH",
+        [9]  = "LIFE_REMAINING",
+        [10] = "BONUS_POINT_ONE",
+        [11] = "BONUS_POINT_TWO",
+        [12] = "BONUS_POINT_THREE",
+        [13] = "SOLO_ARENA_PICKUP_ONE",
+        [14] = "SOLO_ARENA_PICKUP_TWO",
+        [15] = "SOLO_ARENA_PICKUP_THREE",
+        [16] = "SOLO_ARENA_PICKUP_FOUR",
+        [17] = "SOLO_ARENA_COMPLETE",
+    },
 }
 
 function ChatSpam:Initialize()
@@ -16,6 +37,9 @@ function ChatSpam:Initialize()
 
     -- Prehooks
     ChatSpam.SetUpAlertTextHooks()
+
+    -- Score
+    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE, ChatSpam.OnScoreUpdate)
 end
 
 -- Print out Alkosh values in chat
@@ -43,7 +67,6 @@ function ChatSpam.OnEffectColossus(_, changeType, effectSlot, effectName, unitTa
         return
     end
 
-    -- KyzuiWhen:dbg(string.format("changeType %d, effectSlot %d, effectName %s, unitTag %s, beginTime %d, endTime %d, stackCount %d, buffType %s, effectType %d, abilityType %d, statusEffectType %d, unitName %s, unitId %s, abilityId %d, sourceType %d, abilityName %s", changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType, GetAbilityName(abilityId)))
     if (changeType == EFFECT_RESULT_GAINED) then
         KyzuiWhen:dbg(string.format("|c999999%s (%d)|r |cFF0000gained|r Invulnerability", unitName, unitId))
     elseif (changeType == EFFECT_RESULT_FADED) then
@@ -51,24 +74,9 @@ function ChatSpam.OnEffectColossus(_, changeType, effectSlot, effectName, unitTa
     end
 
     ChatSpam.units[unitId] = unitName
-
-
-    -- [16:55:01] changeType 1, effectSlot 115, effectName Major Vulnerability Invulnerability, unitTag boss1, beginTime 2145, endTime 2165, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName Shademother^F, unitId 5601, abilityId 132831, sourceType 1, abilityName Major Vulnerability Immunity
-    -- [16:55:01] changeType 1, effectSlot 115, effectName Major Vulnerability Invulnerability, unitTag reticleover, beginTime 2145, endTime 2165, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName Shademother^F, unitId 5601, abilityId 132831, sourceType 1, abilityName Major Vulnerability Immunity
-    -- [16:55:03] changeType 1, effectSlot 80, effectName Major Vulnerability Invulnerability, unitTag , beginTime 2147, endTime 2167, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName Skeletal Dire Wolf^n, unitId 43086, abilityId 132831, sourceType 1, abilityName Major Vulnerability Immunity
-    -- [16:55:03] changeType 1, effectSlot 80, effectName Major Vulnerability Invulnerability, unitTag , beginTime 2147, endTime 2167, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName Skeletal Dire Wolf^n, unitId 18955, abilityId 132831, sourceType 1, abilityName Major Vulnerability Immunity
-
-    -- [16:55:04] changeType 2, effectSlot 80, effectName Major Vulnerability Invulnerability, unitTag , beginTime 0, endTime 0, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName Skeletal Dire Wolf^n, unitId 43086, abilityId 132831, sourceType 1, abilityName Major Vulnerability Immunity
-    -- [16:55:04] changeType 2, effectSlot 80, effectName Major Vulnerability Invulnerability, unitTag , beginTime 0, endTime 0, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName Skeletal Dire Wolf^n, unitId 18955, abilityId 132831, sourceType 1, abilityName Major Vulnerability Immunity
-    -- [16:55:21] changeType 2, effectSlot 115, effectName Major Vulnerability Invulnerability, unitTag boss1, beginTime 0, endTime 0, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName Shademother^F, unitId 5601, abilityId 132831, sourceType 1, abilityName Major Vulnerability Immunity
-    -- [16:55:21] changeType 2, effectSlot 115, effectName Major Vulnerability Invulnerability, unitTag reticleover, beginTime 0, endTime 0, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName Shademother^F, unitId 5601, abilityId 132831, sourceType 1, abilityName Major Vulnerability Immunity
-
-
-    -- group member Colossus, look when fading
-    -- [17:10:11] changeType 1, effectSlot 77, effectName Major Vulnerability Invulnerability, unitTag , beginTime 3055, endTime 3075, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName The Precursor, unitId 63074, abilityId 132831, sourceType 3, abilityName Major Vulnerability Immunity
-    -- [17:10:23] changeType 2, effectSlot 77, effectName Major Vulnerability Invulnerability, unitTag reticleover, beginTime 0, endTime 0, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName The Precursor, unitId 63074, abilityId 132831, sourceType 3, abilityName Major Vulnerability Immunity
 end
 
+-- Block the "Item not ready yet" spam when using potion that's still on cooldown
 function ChatSpam.SetUpAlertTextHooks()
     local handlers = ZO_AlertText_GetHandlers()
 
@@ -77,4 +85,15 @@ function ChatSpam.SetUpAlertTextHooks()
     end
 
     ZO_PreHook(handlers, EVENT_ITEM_ON_COOLDOWN, OnItemOnCooldown)
+end
+
+-- EVENT_RAID_TRIAL_SCORE_UPDATE (number eventCode, RaidPointReason scoreUpdateReason, number scoreAmount, number totalScore)
+function ChatSpam.OnScoreUpdate(_, scoreUpdateReason, scoreAmount, totalScore)
+    if (KyzuiWhen.savedOptions.score.enable) then
+        if (scoreUpdateReason == RAID_POINT_REASON_LIFE_REMAINING) then
+            return
+        end
+
+        KyzuiWhen:dbg(string.format("|c888888Score +|cAAAAAA%d |c888888%s|r", scoreAmount, ChatSpam.pointReason[scoreUpdateReason]))
+    end
 end
