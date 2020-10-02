@@ -18,6 +18,9 @@ local defaultOptions = {
     colossus = {
         enable = true,
     },
+    block = {
+        itemNotReady = false,
+    },
 }
 
 local defaultValues = {
@@ -83,7 +86,7 @@ function KyzuiWhen.handleCommand(argString)
     end
 
     if (length == 0) then
-        KyzuiWhen:dbg("Usage: /kw <show||debug||alkosh||colossus>")
+        KyzuiWhen:dbg("Usage: /kw <show || debug || alkosh || colossus || itemnotready>")
         return
     end
 
@@ -107,6 +110,11 @@ function KyzuiWhen.handleCommand(argString)
     elseif (args[1] == "colossus") then
         KyzuiWhen.savedOptions.colossus.enable = not KyzuiWhen.savedOptions.colossus.enable
         KyzuiWhen:dbg("Colossus invulnerability chat spam is now " .. tostring(KyzuiWhen.savedOptions.colossus.enable))
+
+    -- Toggle itemNotReady
+    elseif (args[1] == "itemnotready") then
+        KyzuiWhen.savedOptions.block.itemNotReady = not KyzuiWhen.savedOptions.block.itemNotReady
+        KyzuiWhen:dbg("Blocking \"Item not ready yet\" alert is now " .. tostring(KyzuiWhen.savedOptions.block.itemNotReady))
 
     -- Unknown
     else

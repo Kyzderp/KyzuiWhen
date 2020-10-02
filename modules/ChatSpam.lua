@@ -13,6 +13,9 @@ function ChatSpam:Initialize()
     -- Colossus?
     EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, ChatSpam.OnEffectColossus)
     EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 132831)
+
+    -- Prehooks
+    ChatSpam.SetUpAlertTextHooks()
 end
 
 -- Print out Alkosh values in chat
@@ -64,4 +67,14 @@ function ChatSpam.OnEffectColossus(_, changeType, effectSlot, effectName, unitTa
     -- group member Colossus, look when fading
     -- [17:10:11] changeType 1, effectSlot 77, effectName Major Vulnerability Invulnerability, unitTag , beginTime 3055, endTime 3075, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName The Precursor, unitId 63074, abilityId 132831, sourceType 3, abilityName Major Vulnerability Immunity
     -- [17:10:23] changeType 2, effectSlot 77, effectName Major Vulnerability Invulnerability, unitTag reticleover, beginTime 0, endTime 0, stackCount 0, buffType , effectType 2, abilityType 0, statusEffectType 0, unitName The Precursor, unitId 63074, abilityId 132831, sourceType 3, abilityName Major Vulnerability Immunity
+end
+
+function ChatSpam.SetUpAlertTextHooks()
+    local handlers = ZO_AlertText_GetHandlers()
+
+    local function OnItemOnCooldown()
+        return KyzuiWhen.savedOptions.block.itemNotReady
+    end
+
+    ZO_PreHook(handlers, EVENT_ITEM_ON_COOLDOWN, OnItemOnCooldown)
 end
