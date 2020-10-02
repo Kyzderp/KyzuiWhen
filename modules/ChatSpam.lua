@@ -1,5 +1,6 @@
 ChatSpam = {
-    units = {}, -- Attempt to cache unitIds to see what units get Alkosh/etc
+    unitIds = {}, -- Attempt to cache unitIds to see what units get Alkosh/etc
+    bosses = {}, -- Cache which unitIds are bosses for coloring
 
     pointReason = {
         [0]  = "KILL_NOXP_MONSTER",
@@ -35,6 +36,10 @@ function ChatSpam:Initialize()
     EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, ChatSpam.OnEffectColossus)
     EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 132831)
 
+    -- Magsteal for cache
+    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED, ChatSpam.OnEffect)
+    EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 39100)
+
     -- Prehooks
     ChatSpam.SetUpAlertTextHooks()
 
@@ -49,14 +54,19 @@ function ChatSpam.OnCombatAlkosh(_, _, _, abilityName, _, _, sourceName, _, targ
         return
     end
 
+    local targetColor = "|c999999"
+    if (ChatSpam.bosses[targetUnitId]) then
+        targetColor = "|cFF66CC"
+    end
+
     -- Print Alkosh values depending on if it's from yourself or others
     if (sourceName ~= nil and sourceName ~= "") then
-        KyzuiWhen:dbg(string.format("Self Alkosh |c00FF00%d|r on |c999999%s (%d)|r", hitValue, targetName, targetUnitId))
-        ChatSpam.units[targetUnitId] = targetName
-    elseif (ChatSpam.units[targetUnitId] ~= nil) then
-        KyzuiWhen:dbg(string.format("Other (%d) Alkosh |c00FFFF%d|r on |c999999%s (%d)|r", sourceUnitId, hitValue, ChatSpam.units[targetUnitId], targetUnitId))
+        KyzuiWhen:dbg(string.format("Self Alkosh |c00FF00%d|r on %s%s (%d)|r", hitValue, targetColor, ChatSpam.stripSuffix(targetName), targetUnitId))
+        ChatSpam.unitIds[targetUnitId] = targetName
+    elseif (ChatSpam.unitIds[targetUnitId] ~= nil) then
+        KyzuiWhen:dbg(string.format("Other (%d) Alkosh |c00FFFF%d|r on %s%s (%d)|r", sourceUnitId, hitValue, targetColor, ChatSpam.stripSuffix(ChatSpam.unitIds[targetUnitId]), targetUnitId))
     else
-        KyzuiWhen:dbg(string.format("Other (%d) Alkosh |c00FFFF%d|r on |c999999Unknown (%d)|r", sourceUnitId, hitValue, targetUnitId))
+        KyzuiWhen:dbg(string.format("Other (%d) Alkosh |c00FFFF%d|r on %sUnknown (%d)|r", sourceUnitId, hitValue, targetColor, targetUnitId))
     end
 end
 
@@ -67,13 +77,36 @@ function ChatSpam.OnEffectColossus(_, changeType, effectSlot, effectName, unitTa
         return
     end
 
-    if (changeType == EFFECT_RESULT_GAINED) then
-        KyzuiWhen:dbg(string.format("|c999999%s (%d)|r |cFF0000gained|r Invulnerability", unitName, unitId))
-    elseif (changeType == EFFECT_RESULT_FADED) then
-        KyzuiWhen:dbg(string.format("|c999999%s (%d)|r |c00FF00lost|r Invulnerability", unitName, unitId))
+    local targetColor = "|c999999"
+    if (string.find(unitTag, "^boss")) then
+        ChatSpam.bosses[unitId] = true
+        targetColor = "|cFF66CC"
     end
 
-    ChatSpam.units[unitId] = unitName
+    if (changeType == EFFECT_RESULT_GAINED) then
+        KyzuiWhen:dbg(string.format("%s%s (%d)|r |cFF0000gained|r Invulnerability", targetColor, ChatSpam.stripSuffix(unitName), unitId))
+    elseif (changeType == EFFECT_RESULT_FADED) then
+        KyzuiWhen:dbg(string.format("%s%s (%d)|r |c00FF00lost|r Invulnerability", targetColor, ChatSpam.stripSuffix(unitName), unitId))
+    end
+
+    ChatSpam.unitIds[unitId] = unitName
+end
+
+-- Use effects to cache enemy info
+-- EVENT_EFFECT_CHANGED (number eventCode, MsgEffectResult changeType, number effectSlot, string effectName, string unitTag, number beginTime, number endTime, number stackCount, string iconName, string buffType, BuffEffectType effectType, AbilityType abilityType, StatusEffectType statusEffectType, string unitName, number unitId, number abilityId, CombatUnitType sourceType)
+function ChatSpam.OnEffect(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
+    if (not KyzuiWhen.savedOptions.alkosh.enable) then
+        return -- no point in caching if not using the alkosh
+    end
+
+    if (changeType ~= EFFECT_RESULT_GAINED) then
+        return
+    end
+
+    if (string.find(unitTag, "^boss")) then
+        ChatSpam.bosses[unitId] = true
+    end
+    ChatSpam.unitIds[unitId] = unitName
 end
 
 -- Block the "Item not ready yet" spam when using potion that's still on cooldown
@@ -95,5 +128,14 @@ function ChatSpam.OnScoreUpdate(_, scoreUpdateReason, scoreAmount, totalScore)
         end
 
         KyzuiWhen:dbg(string.format("|c888888Score +|cAAAAAA%d |c888888%s|r", scoreAmount, ChatSpam.pointReason[scoreUpdateReason]))
+    end
+end
+
+function ChatSpam.stripSuffix(unitName)
+    local index = string.find(unitName, "^", 1, true)
+    if (index) then
+        return string.sub(unitName, 1, index - 1)
+    else
+        return unitName
     end
 end
