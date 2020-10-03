@@ -77,6 +77,10 @@ function ChatSpam.OnEffectColossus(_, changeType, effectSlot, effectName, unitTa
         return
     end
 
+    if (unitTag == "reticleover" and ChatSpam.bosses[unitId]) then
+        return -- do not display double line if reticle over a boss
+    end
+
     local targetColor = "|c999999"
     if (string.find(unitTag, "^boss")) then
         ChatSpam.bosses[unitId] = true
@@ -127,7 +131,7 @@ function ChatSpam.OnScoreUpdate(_, scoreUpdateReason, scoreAmount, totalScore)
             return
         end
 
-        KyzuiWhen:dbg(string.format("|c888888Score +|cAAAAAA%d |c888888%s|r", scoreAmount, ChatSpam.pointReason[scoreUpdateReason]))
+        KyzuiWhen:dbg(string.format("|c888888Score +|cAAFFAA%d |c888888%s|r", scoreAmount, ChatSpam.pointReason[scoreUpdateReason]))
     end
 end
 
