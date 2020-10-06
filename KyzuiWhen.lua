@@ -18,6 +18,7 @@ local defaultOptions = {
     },
     colossus = {
         enable = true,
+        bossOnly = true,
     },
     block = {
         itemNotReady = false,
@@ -96,6 +97,7 @@ function KyzuiWhen.handleCommand(argString)
         KyzuiWhen:dbg(string.format("alkosh: %s", KyzuiWhen.savedOptions.alkosh.enable and "|c00FF00on|r" or "|cFF0000off|r"))
         KyzuiWhen:dbg(string.format("    usepreset: %s", KyzuiWhen.savedOptions.alkosh.usePreset and "|c00FF00on|r" or "|cFF0000off|r"))
         KyzuiWhen:dbg(string.format("colossus: %s", KyzuiWhen.savedOptions.colossus.enable and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("    bossonly: %s", KyzuiWhen.savedOptions.colossus.bossOnly and "|c00FF00on|r" or "|cFF0000off|r"))
         KyzuiWhen:dbg(string.format("itemnotready: %s", KyzuiWhen.savedOptions.block.itemNotReady and "|c00FF00on|r" or "|cFF0000off|r"))
         KyzuiWhen:dbg(string.format("score: %s", KyzuiWhen.savedOptions.score.enable and "|c00FF00on|r" or "|cFF0000off|r"))
         return
@@ -119,6 +121,11 @@ function KyzuiWhen.handleCommand(argString)
 
     -- Toggle colossus
     elseif (args[1] == "colossus") then
+        if (length == 2 and args[2] == "bossonly") then
+            KyzuiWhen.savedOptions.colossus.bossOnly = not KyzuiWhen.savedOptions.colossus.bossOnly
+            KyzuiWhen:dbg("Show colossus invulnerability only in boss fights is now " .. tostring(KyzuiWhen.savedOptions.colossus.bossOnly))
+            return
+        end
         KyzuiWhen.savedOptions.colossus.enable = not KyzuiWhen.savedOptions.colossus.enable
         KyzuiWhen:dbg("Colossus invulnerability chat spam is now " .. tostring(KyzuiWhen.savedOptions.colossus.enable))
         ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)

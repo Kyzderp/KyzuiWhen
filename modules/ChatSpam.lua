@@ -41,6 +41,17 @@ function ChatSpam:Initialize()
     -- Prehooks
     ChatSpam.SetUpAlertTextHooks()
 
+    -- Bosses changed
+    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamBossesChanged", EVENT_BOSSES_CHANGED, function()
+        if (KyzuiWhen.savedOptions.colossus.bossOnly) then
+            if (DoesUnitExist("boss1")) then
+                ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
+            else
+                ChatSpam.RegisterColossus(false)
+            end
+        end
+    end)
+
     ChatSpam.CheckActivation()
 end
 
@@ -56,7 +67,9 @@ function ChatSpam.CheckActivation()
     end
 
     -- Colossus?
-    ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
+    if (not KyzuiWhen.savedOptions.colossus.bossOnly or DoesUnitExist("boss1")) then
+        ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
+    end
 
     -- Score
     ChatSpam.RegisterScore(KyzuiWhen.savedOptions.score.enable)
@@ -73,7 +86,7 @@ function ChatSpam.RegisterAlkosh(register)
         EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED, ChatSpam.OnEffect)
         EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 39100)
         KyzuiWhen:dbg("Registered Alkosh")
-    elseif (not register) then
+    elseif (not register and ChatSpam.activeEvents.alkosh) then
         EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "ChatSpamAlkosh", EVENT_COMBAT_EVENT)
         EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED)
         KyzuiWhen:dbg("Unregistered Alkosh")
@@ -86,7 +99,7 @@ function ChatSpam.RegisterColossus(register)
         EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, ChatSpam.OnEffectColossus)
         EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 132831)
         KyzuiWhen:dbg("Registered Colossus")
-    elseif (not register) then
+    elseif (not register and ChatSpam.activeEvents.colossus) then
         EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED)
         KyzuiWhen:dbg("Unregistered Colossus")
     end
@@ -97,7 +110,7 @@ function ChatSpam.RegisterScore(register)
     if (register and not ChatSpam.activeEvents.score) then
         EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE, ChatSpam.OnScoreUpdate)
         KyzuiWhen:dbg("Registered Score")
-    elseif (not register) then
+    elseif (not register and ChatSpam.activeEvents.score) then
         EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE)
         KyzuiWhen:dbg("Unregistered Score")
     end
