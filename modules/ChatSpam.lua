@@ -1,4 +1,10 @@
 ChatSpam = {
+    activeEvents = {
+        alkosh = false,
+        colossus = false,
+        score = false,
+    },
+
     unitIds = {}, -- Attempt to cache unitIds to see what units get Alkosh/etc
     bosses = {}, -- Cache which unitIds are bosses for coloring
 
@@ -22,38 +28,85 @@ ChatSpam = {
         [16] = "SOLO_ARENA_PICKUP_FOUR",
         [17] = "SOLO_ARENA_COMPLETE",
     },
+
+    -- My personal preset for Alkosh spam. Hides the Alkosh spam in these zone IDs
+    hideAlkoshZones = {
+        [1082] = true, -- Blackrose Prison
+    },
 }
 
 function ChatSpam:Initialize()
     KyzuiWhen:dbg("    Initializing ChatSpam module...")
 
-    -- Alkosh?
-    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamAlkosh", EVENT_COMBAT_EVENT, ChatSpam.OnCombatAlkosh)
-    EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamAlkosh", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE)
-    EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamAlkosh", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 75752)
-
-    -- Colossus?
-    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, ChatSpam.OnEffectColossus)
-    EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 132831)
-
-    -- Magsteal for cache
-    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED, ChatSpam.OnEffect)
-    EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 39100)
-
     -- Prehooks
     ChatSpam.SetUpAlertTextHooks()
 
+    ChatSpam.CheckActivation()
+end
+
+function ChatSpam.CheckActivation()
+    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
+    KyzuiWhen:dbg(string.format("|cAAAAAAChecking activation... %s (%d)|r", GetZoneNameById(zoneId), zoneId))
+
+    -- Alkosh
+    if (KyzuiWhen.savedOptions.alkosh.usePreset and ChatSpam.hideAlkoshZones[zoneId]) then
+        ChatSpam.RegisterAlkosh(false)
+    else
+        ChatSpam.RegisterAlkosh(KyzuiWhen.savedOptions.alkosh.enable)
+    end
+
+    -- Colossus?
+    ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
+
     -- Score
-    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE, ChatSpam.OnScoreUpdate)
+    ChatSpam.RegisterScore(KyzuiWhen.savedOptions.score.enable)
+end
+
+function ChatSpam.RegisterAlkosh(register)
+    if (register and not ChatSpam.activeEvents.alkosh) then
+        -- Alkosh hit
+        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamAlkosh", EVENT_COMBAT_EVENT, ChatSpam.OnCombatAlkosh)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamAlkosh", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamAlkosh", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 75752)
+
+        -- Magsteal for cache
+        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED, ChatSpam.OnEffect)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 39100)
+        KyzuiWhen:dbg("Registered Alkosh")
+    elseif (not register) then
+        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "ChatSpamAlkosh", EVENT_COMBAT_EVENT)
+        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "ChatSpamMagsteal", EVENT_EFFECT_CHANGED)
+        KyzuiWhen:dbg("Unregistered Alkosh")
+    end
+    ChatSpam.activeEvents.alkosh = register
+end
+
+function ChatSpam.RegisterColossus(register)
+    if (register and not ChatSpam.activeEvents.colossus) then
+        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, ChatSpam.OnEffectColossus)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 132831)
+        KyzuiWhen:dbg("Registered Colossus")
+    elseif (not register) then
+        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "ChatSpamColossus", EVENT_EFFECT_CHANGED)
+        KyzuiWhen:dbg("Unregistered Colossus")
+    end
+    ChatSpam.activeEvents.colossus = register
+end
+
+function ChatSpam.RegisterScore(register)
+    if (register and not ChatSpam.activeEvents.score) then
+        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE, ChatSpam.OnScoreUpdate)
+        KyzuiWhen:dbg("Registered Score")
+    elseif (not register) then
+        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE)
+        KyzuiWhen:dbg("Unregistered Score")
+    end
+    ChatSpam.activeEvents.score = register
 end
 
 -- Print out Alkosh values in chat
 -- EVENT_COMBAT_EVENT (number eventCode, number ActionResult result, boolean isError, string abilityName, number abilityGraphic, number ActionSlotType abilityActionSlotType, string sourceName, number CombatUnitType sourceType, string targetName, number CombatUnitType targetType, number hitValue, number CombatMechanicType powerType, number DamageType damageType, boolean log, number sourceUnitId, number targetUnitId, number abilityId, number overflow)
 function ChatSpam.OnCombatAlkosh(_, _, _, abilityName, _, _, sourceName, _, targetName, _, hitValue, _, _, _, _, targetUnitId, abilityId, _)
-    if (not KyzuiWhen.savedOptions.alkosh.enable) then
-        return
-    end
-
     local targetColor = "|c999999"
     if (ChatSpam.bosses[targetUnitId]) then
         targetColor = "|cFF66CC"
@@ -73,10 +126,6 @@ end
 -- Print out major vulnerability invulnerability in chat
 -- EVENT_EFFECT_CHANGED (number eventCode, MsgEffectResult changeType, number effectSlot, string effectName, string unitTag, number beginTime, number endTime, number stackCount, string iconName, string buffType, BuffEffectType effectType, AbilityType abilityType, StatusEffectType statusEffectType, string unitName, number unitId, number abilityId, CombatUnitType sourceType)
 function ChatSpam.OnEffectColossus(_, changeType, _, _, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
-    if (not KyzuiWhen.savedOptions.colossus.enable) then
-        return
-    end
-
     if (unitTag == "reticleover" and ChatSpam.bosses[unitId]) then
         return -- do not display double line if reticle over a boss
     end
@@ -99,10 +148,6 @@ end
 -- Use effects to cache enemy info
 -- EVENT_EFFECT_CHANGED (number eventCode, MsgEffectResult changeType, number effectSlot, string effectName, string unitTag, number beginTime, number endTime, number stackCount, string iconName, string buffType, BuffEffectType effectType, AbilityType abilityType, StatusEffectType statusEffectType, string unitName, number unitId, number abilityId, CombatUnitType sourceType)
 function ChatSpam.OnEffect(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
-    if (not KyzuiWhen.savedOptions.alkosh.enable) then
-        return -- no point in caching if not using the alkosh
-    end
-
     if (changeType ~= EFFECT_RESULT_GAINED) then
         return
     end

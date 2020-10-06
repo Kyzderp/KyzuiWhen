@@ -14,6 +14,7 @@ local defaultOptions = {
     },
     alkosh = {
         enable = true,
+        usePreset = false,
     },
     colossus = {
         enable = true,
@@ -57,11 +58,12 @@ EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name, EVENT_ADD_ON_LOADED, KyzuiWhen.On
 ---------------------------------------------------------------------
 -- Post Load (player loaded)
 function KyzuiWhen.OnPlayerActivated(_, initial)
-    EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name, EVENT_PLAYER_ACTIVATED)
+    -- Every time player loads, check the event activations
+    ChatSpam.CheckActivation()
 
     -- Soft dependency on pChat because its chat restore will overwrite
     for i = 1, #KyzuiWhen.messages do
-        d(KyzuiWhen.messages[i])
+        d("|c34EB61[KWdelay]|r " .. KyzuiWhen.messages[i])
     end
     KyzuiWhen.messages = {}
 end
@@ -72,7 +74,7 @@ function KyzuiWhen:dbg(msg)
     if (not msg) then return end
     if (not KyzuiWhen.savedOptions.general.debug) then return end
     if (CHAT_SYSTEM.primaryContainer) then
-        d("[KW] " .. msg)
+        d("|c34EB61[KW]|r " .. msg)
     else
         KyzuiWhen.messages[#KyzuiWhen.messages + 1] = msg
     end
@@ -89,30 +91,37 @@ function KyzuiWhen.handleCommand(argString)
     end
 
     if (length == 0) then
-        KyzuiWhen:dbg("Usage: /kw <show || debug || alkosh || colossus || itemnotready || score>")
+        KyzuiWhen:dbg("Usage: /kw <command>")
+        KyzuiWhen:dbg(string.format("debug: %s", KyzuiWhen.savedOptions.general.debug and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("alkosh: %s", KyzuiWhen.savedOptions.alkosh.enable and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("    usepreset: %s", KyzuiWhen.savedOptions.alkosh.usePreset and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("colossus: %s", KyzuiWhen.savedOptions.colossus.enable and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("itemnotready: %s", KyzuiWhen.savedOptions.block.itemNotReady and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("score: %s", KyzuiWhen.savedOptions.score.enable and "|c00FF00on|r" or "|cFF0000off|r"))
         return
     end
 
-    -- ez print the stuff
-    if (args[1] == "show") then
-        KyzuiWhen:dbg(string.format("All debug: %s", KyzuiWhen.savedOptions.general.debug and "|c00FF00on|r" or "|cFF0000off|r"))
-        KyzuiWhen:dbg(string.format("Alkosh: %s", KyzuiWhen.savedOptions.alkosh.enable and "|c00FF00on|r" or "|cFF0000off|r"))
-        KyzuiWhen:dbg(string.format("Colossus: %s", KyzuiWhen.savedOptions.colossus.enable and "|c00FF00on|r" or "|cFF0000off|r"))
-
     -- Toggle debug
-    elseif (args[1] == "debug") then
+    if (args[1] == "debug") then
         KyzuiWhen.savedOptions.general.debug = not KyzuiWhen.savedOptions.general.debug
         KyzuiWhen:dbg("Debug (more like all printing) is now " .. tostring(KyzuiWhen.savedOptions.general.debug))
 
     -- Toggle alkosh
     elseif (args[1] == "alkosh") then
+        if (length == 2 and args[2] == "usepreset") then
+            KyzuiWhen.savedOptions.alkosh.usePreset = not KyzuiWhen.savedOptions.alkosh.usePreset
+            KyzuiWhen:dbg("Alkosh using preset is now " .. tostring(KyzuiWhen.savedOptions.alkosh.usePreset))
+            return
+        end
         KyzuiWhen.savedOptions.alkosh.enable = not KyzuiWhen.savedOptions.alkosh.enable
         KyzuiWhen:dbg("Alkosh value chat spam is now " .. tostring(KyzuiWhen.savedOptions.alkosh.enable))
+        ChatSpam.RegisterAlkosh(KyzuiWhen.savedOptions.alkosh.enable)
 
     -- Toggle colossus
     elseif (args[1] == "colossus") then
         KyzuiWhen.savedOptions.colossus.enable = not KyzuiWhen.savedOptions.colossus.enable
         KyzuiWhen:dbg("Colossus invulnerability chat spam is now " .. tostring(KyzuiWhen.savedOptions.colossus.enable))
+        ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
 
     -- Toggle itemNotReady
     elseif (args[1] == "itemnotready") then
@@ -123,6 +132,7 @@ function KyzuiWhen.handleCommand(argString)
     elseif (args[1] == "score") then
         KyzuiWhen.savedOptions.score.enable = not KyzuiWhen.savedOptions.score.enable
         KyzuiWhen:dbg("Score chat spam is now " .. tostring(KyzuiWhen.savedOptions.score.enable))
+        ChatSpam.RegisterScore(KyzuiWhen.savedOptions.score.enable)
 
     -- Unknown
     else
