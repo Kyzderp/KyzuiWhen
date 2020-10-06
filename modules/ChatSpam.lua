@@ -49,7 +49,7 @@ end
 
 -- Print out Alkosh values in chat
 -- EVENT_COMBAT_EVENT (number eventCode, number ActionResult result, boolean isError, string abilityName, number abilityGraphic, number ActionSlotType abilityActionSlotType, string sourceName, number CombatUnitType sourceType, string targetName, number CombatUnitType targetType, number hitValue, number CombatMechanicType powerType, number DamageType damageType, boolean log, number sourceUnitId, number targetUnitId, number abilityId, number overflow)
-function ChatSpam.OnCombatAlkosh(_, _, _, abilityName, _, _, sourceName, _, targetName, _, hitValue, _, _, _, sourceUnitId, targetUnitId, abilityId, _)
+function ChatSpam.OnCombatAlkosh(_, _, _, abilityName, _, _, sourceName, _, targetName, _, hitValue, _, _, _, _, targetUnitId, abilityId, _)
     if (not KyzuiWhen.savedOptions.alkosh.enable) then
         return
     end
@@ -61,18 +61,18 @@ function ChatSpam.OnCombatAlkosh(_, _, _, abilityName, _, _, sourceName, _, targ
 
     -- Print Alkosh values depending on if it's from yourself or others
     if (sourceName ~= nil and sourceName ~= "") then
-        KyzuiWhen:dbg(string.format("Self Alkosh |c00FF00%d|r on %s%s (%d)|r", hitValue, targetColor, ChatSpam.stripSuffix(targetName), targetUnitId))
+        KyzuiWhen:dbg(string.format("Self Alkosh |c00FF00%d|r on %s%s|r", hitValue, targetColor, ChatSpam.stripSuffix(targetName)))
         ChatSpam.unitIds[targetUnitId] = targetName
     elseif (ChatSpam.unitIds[targetUnitId] ~= nil) then
-        KyzuiWhen:dbg(string.format("Other (%d) Alkosh |c00FFFF%d|r on %s%s (%d)|r", sourceUnitId, hitValue, targetColor, ChatSpam.stripSuffix(ChatSpam.unitIds[targetUnitId]), targetUnitId))
+        KyzuiWhen:dbg(string.format("Other Alkosh |c00FFFF%d|r on %s%s|r", hitValue, targetColor, ChatSpam.stripSuffix(ChatSpam.unitIds[targetUnitId])))
     else
-        KyzuiWhen:dbg(string.format("Other (%d) Alkosh |c00FFFF%d|r on %sUnknown (%d)|r", sourceUnitId, hitValue, targetColor, targetUnitId))
+        KyzuiWhen:dbg(string.format("Other Alkosh |c00FFFF%d|r on %sUnknown|r", hitValue, targetColor))
     end
 end
 
 -- Print out major vulnerability invulnerability in chat
 -- EVENT_EFFECT_CHANGED (number eventCode, MsgEffectResult changeType, number effectSlot, string effectName, string unitTag, number beginTime, number endTime, number stackCount, string iconName, string buffType, BuffEffectType effectType, AbilityType abilityType, StatusEffectType statusEffectType, string unitName, number unitId, number abilityId, CombatUnitType sourceType)
-function ChatSpam.OnEffectColossus(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
+function ChatSpam.OnEffectColossus(_, changeType, _, _, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
     if (not KyzuiWhen.savedOptions.colossus.enable) then
         return
     end
@@ -88,9 +88,9 @@ function ChatSpam.OnEffectColossus(_, changeType, effectSlot, effectName, unitTa
     end
 
     if (changeType == EFFECT_RESULT_GAINED) then
-        KyzuiWhen:dbg(string.format("%s%s (%d)|r |cFF0000gained|r Invulnerability", targetColor, ChatSpam.stripSuffix(unitName), unitId))
+        KyzuiWhen:dbg(string.format("%s%s|r |cFF0000gained|r Invulnerability", targetColor, ChatSpam.stripSuffix(unitName)))
     elseif (changeType == EFFECT_RESULT_FADED) then
-        KyzuiWhen:dbg(string.format("%s%s (%d)|r |c00FF00lost|r Invulnerability", targetColor, ChatSpam.stripSuffix(unitName), unitId))
+        KyzuiWhen:dbg(string.format("%s%s|r |c00FF00lost|r Invulnerability", targetColor, ChatSpam.stripSuffix(unitName)))
     end
 
     ChatSpam.unitIds[unitId] = unitName
@@ -131,7 +131,7 @@ function ChatSpam.OnScoreUpdate(_, scoreUpdateReason, scoreAmount, totalScore)
             return
         end
 
-        KyzuiWhen:dbg(string.format("|c888888Score +|cAAFFAA%d |c888888%s|r", scoreAmount, ChatSpam.pointReason[scoreUpdateReason]))
+        KyzuiWhen:dbg(string.format("|c888888%s |cAAFFAA%d|r", ChatSpam.pointReason[scoreUpdateReason], scoreAmount))
     end
 end
 
