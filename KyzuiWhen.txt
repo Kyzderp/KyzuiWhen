@@ -11,6 +11,7 @@
 ## SavedVariables: KyzuiWhenSavedVariables
 
 modules/KW_ChatSpam.lua
+modules/KW_Interface.lua
 
 KyzuiWhen.lua
 KyzuiWhen.xml

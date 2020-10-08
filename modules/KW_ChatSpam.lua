@@ -36,8 +36,6 @@ KW_ChatSpam = {
 }
 
 function KW_ChatSpam:Initialize()
-    KyzuiWhen:dbg("    Initializing KW_ChatSpam module...")
-
     -- Prehooks
     KW_ChatSpam.SetUpAlertTextHooks()
 

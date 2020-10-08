@@ -26,6 +26,9 @@ local defaultOptions = {
     score = {
         enable = true,
     },
+    reticle = {
+        enable = true,
+    },
 }
 
 local defaultValues = {
@@ -40,6 +43,7 @@ function KyzuiWhen:Initialize()
 
     -- Initialize modules
     KW_ChatSpam:Initialize()
+    KW_Interface:Initialize()
 
     KyzuiWhen:dbg("KyzUI when???")
 end
@@ -100,6 +104,7 @@ function KyzuiWhen.handleCommand(argString)
         KyzuiWhen:dbg(string.format("    bossonly: %s", KyzuiWhen.savedOptions.colossus.bossOnly and "|c00FF00on|r" or "|cFF0000off|r"))
         KyzuiWhen:dbg(string.format("itemnotready: %s", KyzuiWhen.savedOptions.block.itemNotReady and "|c00FF00on|r" or "|cFF0000off|r"))
         KyzuiWhen:dbg(string.format("score: %s", KyzuiWhen.savedOptions.score.enable and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("reticle: %s", KyzuiWhen.savedOptions.reticle.enable and "|c00FF00on|r" or "|cFF0000off|r"))
         return
     end
 
@@ -140,6 +145,11 @@ function KyzuiWhen.handleCommand(argString)
         KyzuiWhen.savedOptions.score.enable = not KyzuiWhen.savedOptions.score.enable
         KyzuiWhen:dbg("Score chat spam is now " .. tostring(KyzuiWhen.savedOptions.score.enable))
         KW_ChatSpam.RegisterScore(KyzuiWhen.savedOptions.score.enable)
+
+    -- Toggle combat reticle
+    elseif (args[1] == "reticle") then
+        KyzuiWhen.savedOptions.reticle.enable = not KyzuiWhen.savedOptions.reticle.enable
+        KyzuiWhen:dbg("In-combat reticle is now " .. tostring(KyzuiWhen.savedOptions.reticle.enable))
 
     -- Unknown
     else
