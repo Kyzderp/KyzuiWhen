@@ -10,7 +10,7 @@
 
 ## SavedVariables: KyzuiWhenSavedVariables
 
-modules/ChatSpam.lua
+modules/KW_ChatSpam.lua
 
 KyzuiWhen.lua
 KyzuiWhen.xml
