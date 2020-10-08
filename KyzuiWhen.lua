@@ -39,7 +39,7 @@ function KyzuiWhen:Initialize()
     self.savedValues = ZO_SavedVars:NewAccountWide("KyzuiWhenSavedVariables", 1, "Values", defaultValues)
 
     -- Initialize modules
-    ChatSpam:Initialize()
+    KW_ChatSpam:Initialize()
 
     KyzuiWhen:dbg("KyzUI when???")
 end
@@ -60,7 +60,7 @@ EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name, EVENT_ADD_ON_LOADED, KyzuiWhen.On
 -- Post Load (player loaded)
 function KyzuiWhen.OnPlayerActivated(_, initial)
     -- Every time player loads, check the event activations
-    ChatSpam.CheckActivation()
+    KW_ChatSpam.CheckActivation()
 
     -- Soft dependency on pChat because its chat restore will overwrite
     for i = 1, #KyzuiWhen.messages do
@@ -117,7 +117,7 @@ function KyzuiWhen.handleCommand(argString)
         end
         KyzuiWhen.savedOptions.alkosh.enable = not KyzuiWhen.savedOptions.alkosh.enable
         KyzuiWhen:dbg("Alkosh value chat spam is now " .. tostring(KyzuiWhen.savedOptions.alkosh.enable))
-        ChatSpam.RegisterAlkosh(KyzuiWhen.savedOptions.alkosh.enable)
+        KW_ChatSpam.RegisterAlkosh(KyzuiWhen.savedOptions.alkosh.enable)
 
     -- Toggle colossus
     elseif (args[1] == "colossus") then
@@ -128,7 +128,7 @@ function KyzuiWhen.handleCommand(argString)
         end
         KyzuiWhen.savedOptions.colossus.enable = not KyzuiWhen.savedOptions.colossus.enable
         KyzuiWhen:dbg("Colossus invulnerability chat spam is now " .. tostring(KyzuiWhen.savedOptions.colossus.enable))
-        ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
+        KW_ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
 
     -- Toggle itemNotReady
     elseif (args[1] == "itemnotready") then
@@ -139,7 +139,7 @@ function KyzuiWhen.handleCommand(argString)
     elseif (args[1] == "score") then
         KyzuiWhen.savedOptions.score.enable = not KyzuiWhen.savedOptions.score.enable
         KyzuiWhen:dbg("Score chat spam is now " .. tostring(KyzuiWhen.savedOptions.score.enable))
-        ChatSpam.RegisterScore(KyzuiWhen.savedOptions.score.enable)
+        KW_ChatSpam.RegisterScore(KyzuiWhen.savedOptions.score.enable)
 
     -- Unknown
     else
