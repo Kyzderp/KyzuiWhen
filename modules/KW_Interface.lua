@@ -20,6 +20,8 @@ end
 
 function KW_Interface.SetReticleColor(color, inCombat)
     ZO_ReticleContainerReticle:SetColor(unpack(color))
-    ZO_ReticleContainerReticle.animation:SetEndColor(unpack(color))
+    if (ZO_ReticleContainerReticle.animation) then
+        ZO_ReticleContainerReticle.animation:SetEndColor(unpack(color))
+    end
     ZO_ReticleContainerStealthIconStealthEye:SetColor(unpack(color))
 end
