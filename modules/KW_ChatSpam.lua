@@ -35,23 +35,156 @@ KW_ChatSpam = {
     },
 }
 
-function KW_ChatSpam:Initialize()
-    -- Prehooks
-    KW_ChatSpam.SetUpAlertTextHooks()
+---------------------------------------------------------------------
+-- UTIL
+---------------------------------------------------------------------
 
-    -- Bosses changed
-    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamBossesChanged", EVENT_BOSSES_CHANGED, function()
-        if (KyzuiWhen.savedOptions.colossus.bossOnly) then
-            if (DoesUnitExist("boss1")) then
-                KW_ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
-            else
-                KW_ChatSpam.RegisterColossus(false)
-            end
-        end
-    end)
-
-    KW_ChatSpam.CheckActivation()
+local function stripSuffix(unitName)
+    local index = string.find(unitName, "^", 1, true)
+    if (index) then
+        return string.sub(unitName, 1, index - 1)
+    else
+        return unitName
+    end
 end
+
+
+---------------------------------------------------------------------
+-- EVENT HANDLERS
+---------------------------------------------------------------------
+
+-- Print out Alkosh values in chat
+-- EVENT_COMBAT_EVENT (number eventCode, number ActionResult result, boolean isError, string abilityName, number abilityGraphic, number ActionSlotType abilityActionSlotType, string sourceName, number CombatUnitType sourceType, string targetName, number CombatUnitType targetType, number hitValue, number CombatMechanicType powerType, number DamageType damageType, boolean log, number sourceUnitId, number targetUnitId, number abilityId, number overflow)
+local function OnCombatAlkosh(_, _, _, abilityName, _, _, sourceName, _, targetName, _, hitValue, _, _, _, _, targetUnitId, abilityId, _)
+    local targetColor = "|c999999"
+    if (KW_ChatSpam.bosses[targetUnitId]) then
+        targetColor = "|cFF66CC"
+    end
+
+    -- Print Alkosh values depending on if it's from yourself or others
+    if (sourceName ~= nil and sourceName ~= "") then
+        KyzuiWhen:dbg(string.format("Self Alkosh |c00FF00%d|r on %s%s|r", hitValue, targetColor, stripSuffix(targetName)))
+        KW_ChatSpam.unitIds[targetUnitId] = targetName
+    elseif (KW_ChatSpam.unitIds[targetUnitId] ~= nil) then
+        KyzuiWhen:dbg(string.format("Other Alkosh |c00FFFF%d|r on %s%s|r", hitValue, targetColor, stripSuffix(KW_ChatSpam.unitIds[targetUnitId])))
+    else
+        KyzuiWhen:dbg(string.format("Other Alkosh |c00FFFF%d|r on %sUnknown|r", hitValue, targetColor))
+    end
+end
+
+-- Print out major vulnerability invulnerability in chat
+-- EVENT_EFFECT_CHANGED (number eventCode, MsgEffectResult changeType, number effectSlot, string effectName, string unitTag, number beginTime, number endTime, number stackCount, string iconName, string buffType, BuffEffectType effectType, AbilityType abilityType, StatusEffectType statusEffectType, string unitName, number unitId, number abilityId, CombatUnitType sourceType)
+local function OnEffectColossus(_, changeType, _, _, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
+    if (unitTag == "reticleover" and KW_ChatSpam.bosses[unitId]) then
+        return -- do not display double line if reticle over a boss
+    end
+
+    local targetColor = "|c999999"
+    if (string.find(unitTag, "^boss")) then
+        KW_ChatSpam.bosses[unitId] = true
+        targetColor = "|cFF66CC"
+    end
+
+    if (changeType == EFFECT_RESULT_GAINED) then
+        KyzuiWhen:dbg(string.format("%s%s|r |cFF0000gained|r Invulnerability", targetColor, stripSuffix(unitName)))
+    elseif (changeType == EFFECT_RESULT_FADED) then
+        KyzuiWhen:dbg(string.format("%s%s|r |c00FF00lost|r Invulnerability", targetColor, stripSuffix(unitName)))
+    end
+
+    KW_ChatSpam.unitIds[unitId] = unitName
+end
+
+-- Use effects to cache enemy info
+-- EVENT_EFFECT_CHANGED (number eventCode, MsgEffectResult changeType, number effectSlot, string effectName, string unitTag, number beginTime, number endTime, number stackCount, string iconName, string buffType, BuffEffectType effectType, AbilityType abilityType, StatusEffectType statusEffectType, string unitName, number unitId, number abilityId, CombatUnitType sourceType)
+local function OnEffect(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
+    if (changeType ~= EFFECT_RESULT_GAINED) then
+        return
+    end
+
+    if (string.find(unitTag, "^boss")) then
+        KW_ChatSpam.bosses[unitId] = true
+    end
+    KW_ChatSpam.unitIds[unitId] = unitName
+end
+
+-- EVENT_RAID_TRIAL_SCORE_UPDATE (number eventCode, RaidPointReason scoreUpdateReason, number scoreAmount, number totalScore)
+local function OnScoreUpdate(_, scoreUpdateReason, scoreAmount, totalScore)
+    if (KyzuiWhen.savedOptions.score.enable) then
+        if (scoreUpdateReason == RAID_POINT_REASON_LIFE_REMAINING) then
+            return
+        end
+
+        local reason = KW_ChatSpam.pointReason[scoreUpdateReason]
+        if (not reason) then
+            reason = "UNKNOWN"
+        end
+        KyzuiWhen:dbg(string.format("|c888888%s |cAAFFAA%d|r", reason, scoreAmount))
+    end
+end
+
+
+---------------------------------------------------------------------
+-- REGISTER
+---------------------------------------------------------------------
+
+function KW_ChatSpam.RegisterAlkosh(register)
+    if (register and not KW_ChatSpam.activeEvents.alkosh) then
+        -- Alkosh hit
+        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT, OnCombatAlkosh)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 75752)
+
+        -- Magsteal for cache
+        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED, OnEffect)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 39100)
+        KyzuiWhen:dbg("Registered Alkosh")
+    elseif (not register and KW_ChatSpam.activeEvents.alkosh) then
+        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT)
+        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED)
+        KyzuiWhen:dbg("Unregistered Alkosh")
+    end
+    KW_ChatSpam.activeEvents.alkosh = register
+end
+
+function KW_ChatSpam.RegisterColossus(register)
+    if (register and not KW_ChatSpam.activeEvents.colossus) then
+        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED, OnEffectColossus)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 132831)
+        KyzuiWhen:dbg("Registered Colossus")
+    elseif (not register and KW_ChatSpam.activeEvents.colossus) then
+        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED)
+        KyzuiWhen:dbg("Unregistered Colossus")
+    end
+    KW_ChatSpam.activeEvents.colossus = register
+end
+
+function KW_ChatSpam.RegisterScore(register)
+    if (register and not KW_ChatSpam.activeEvents.score) then
+        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE, OnScoreUpdate)
+        KyzuiWhen:dbg("Registered Score")
+    elseif (not register and KW_ChatSpam.activeEvents.score) then
+        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE)
+        KyzuiWhen:dbg("Unregistered Score")
+    end
+    KW_ChatSpam.activeEvents.score = register
+end
+
+
+-- Block the "Item not ready yet" spam when using potion that's still on cooldown
+local function SetUpAlertTextHooks()
+    local handlers = ZO_AlertText_GetHandlers()
+
+    local function OnItemOnCooldown()
+        return KyzuiWhen.savedOptions.block.itemNotReady
+    end
+
+    ZO_PreHook(handlers, EVENT_ITEM_ON_COOLDOWN, OnItemOnCooldown)
+end
+
+
+---------------------------------------------------------------------
+-- ZONE ENTERED
+---------------------------------------------------------------------
 
 function KW_ChatSpam.CheckActivation()
     local zoneId = GetZoneId(GetUnitZoneIndex("player"))
@@ -71,131 +204,29 @@ function KW_ChatSpam.CheckActivation()
 
     -- Score
     KW_ChatSpam.RegisterScore(KyzuiWhen.savedOptions.score.enable)
+
+    -- [10:08:08] [KW] Checking activation... Blackrose Prison (1082)
 end
 
-function KW_ChatSpam.RegisterAlkosh(register)
-    if (register and not KW_ChatSpam.activeEvents.alkosh) then
-        -- Alkosh hit
-        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT, KW_ChatSpam.OnCombatAlkosh)
-        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE)
-        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 75752)
+---------------------------------------------------------------------
+-- INITIALIZE
+---------------------------------------------------------------------
 
-        -- Magsteal for cache
-        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED, KW_ChatSpam.OnEffect)
-        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 39100)
-        KyzuiWhen:dbg("Registered Alkosh")
-    elseif (not register and KW_ChatSpam.activeEvents.alkosh) then
-        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT)
-        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED)
-        KyzuiWhen:dbg("Unregistered Alkosh")
-    end
-    KW_ChatSpam.activeEvents.alkosh = register
-end
+function KW_ChatSpam:Initialize()
+    -- Prehooks
+    SetUpAlertTextHooks()
 
-function KW_ChatSpam.RegisterColossus(register)
-    if (register and not KW_ChatSpam.activeEvents.colossus) then
-        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED, KW_ChatSpam.OnEffectColossus)
-        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 132831)
-        KyzuiWhen:dbg("Registered Colossus")
-    elseif (not register and KW_ChatSpam.activeEvents.colossus) then
-        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED)
-        KyzuiWhen:dbg("Unregistered Colossus")
-    end
-    KW_ChatSpam.activeEvents.colossus = register
-end
-
-function KW_ChatSpam.RegisterScore(register)
-    if (register and not KW_ChatSpam.activeEvents.score) then
-        EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE, KW_ChatSpam.OnScoreUpdate)
-        KyzuiWhen:dbg("Registered Score")
-    elseif (not register and KW_ChatSpam.activeEvents.score) then
-        EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamScore", EVENT_RAID_TRIAL_SCORE_UPDATE)
-        KyzuiWhen:dbg("Unregistered Score")
-    end
-    KW_ChatSpam.activeEvents.score = register
-end
-
--- Print out Alkosh values in chat
--- EVENT_COMBAT_EVENT (number eventCode, number ActionResult result, boolean isError, string abilityName, number abilityGraphic, number ActionSlotType abilityActionSlotType, string sourceName, number CombatUnitType sourceType, string targetName, number CombatUnitType targetType, number hitValue, number CombatMechanicType powerType, number DamageType damageType, boolean log, number sourceUnitId, number targetUnitId, number abilityId, number overflow)
-function KW_ChatSpam.OnCombatAlkosh(_, _, _, abilityName, _, _, sourceName, _, targetName, _, hitValue, _, _, _, _, targetUnitId, abilityId, _)
-    local targetColor = "|c999999"
-    if (KW_ChatSpam.bosses[targetUnitId]) then
-        targetColor = "|cFF66CC"
-    end
-
-    -- Print Alkosh values depending on if it's from yourself or others
-    if (sourceName ~= nil and sourceName ~= "") then
-        KyzuiWhen:dbg(string.format("Self Alkosh |c00FF00%d|r on %s%s|r", hitValue, targetColor, KW_ChatSpam.stripSuffix(targetName)))
-        KW_ChatSpam.unitIds[targetUnitId] = targetName
-    elseif (KW_ChatSpam.unitIds[targetUnitId] ~= nil) then
-        KyzuiWhen:dbg(string.format("Other Alkosh |c00FFFF%d|r on %s%s|r", hitValue, targetColor, KW_ChatSpam.stripSuffix(KW_ChatSpam.unitIds[targetUnitId])))
-    else
-        KyzuiWhen:dbg(string.format("Other Alkosh |c00FFFF%d|r on %sUnknown|r", hitValue, targetColor))
-    end
-end
-
--- Print out major vulnerability invulnerability in chat
--- EVENT_EFFECT_CHANGED (number eventCode, MsgEffectResult changeType, number effectSlot, string effectName, string unitTag, number beginTime, number endTime, number stackCount, string iconName, string buffType, BuffEffectType effectType, AbilityType abilityType, StatusEffectType statusEffectType, string unitName, number unitId, number abilityId, CombatUnitType sourceType)
-function KW_ChatSpam.OnEffectColossus(_, changeType, _, _, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
-    if (unitTag == "reticleover" and KW_ChatSpam.bosses[unitId]) then
-        return -- do not display double line if reticle over a boss
-    end
-
-    local targetColor = "|c999999"
-    if (string.find(unitTag, "^boss")) then
-        KW_ChatSpam.bosses[unitId] = true
-        targetColor = "|cFF66CC"
-    end
-
-    if (changeType == EFFECT_RESULT_GAINED) then
-        KyzuiWhen:dbg(string.format("%s%s|r |cFF0000gained|r Invulnerability", targetColor, KW_ChatSpam.stripSuffix(unitName)))
-    elseif (changeType == EFFECT_RESULT_FADED) then
-        KyzuiWhen:dbg(string.format("%s%s|r |c00FF00lost|r Invulnerability", targetColor, KW_ChatSpam.stripSuffix(unitName)))
-    end
-
-    KW_ChatSpam.unitIds[unitId] = unitName
-end
-
--- Use effects to cache enemy info
--- EVENT_EFFECT_CHANGED (number eventCode, MsgEffectResult changeType, number effectSlot, string effectName, string unitTag, number beginTime, number endTime, number stackCount, string iconName, string buffType, BuffEffectType effectType, AbilityType abilityType, StatusEffectType statusEffectType, string unitName, number unitId, number abilityId, CombatUnitType sourceType)
-function KW_ChatSpam.OnEffect(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, _, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
-    if (changeType ~= EFFECT_RESULT_GAINED) then
-        return
-    end
-
-    if (string.find(unitTag, "^boss")) then
-        KW_ChatSpam.bosses[unitId] = true
-    end
-    KW_ChatSpam.unitIds[unitId] = unitName
-end
-
--- Block the "Item not ready yet" spam when using potion that's still on cooldown
-function KW_ChatSpam.SetUpAlertTextHooks()
-    local handlers = ZO_AlertText_GetHandlers()
-
-    local function OnItemOnCooldown()
-        return KyzuiWhen.savedOptions.block.itemNotReady
-    end
-
-    ZO_PreHook(handlers, EVENT_ITEM_ON_COOLDOWN, OnItemOnCooldown)
-end
-
--- EVENT_RAID_TRIAL_SCORE_UPDATE (number eventCode, RaidPointReason scoreUpdateReason, number scoreAmount, number totalScore)
-function KW_ChatSpam.OnScoreUpdate(_, scoreUpdateReason, scoreAmount, totalScore)
-    if (KyzuiWhen.savedOptions.score.enable) then
-        if (scoreUpdateReason == RAID_POINT_REASON_LIFE_REMAINING) then
-            return
+    -- Bosses changed
+    EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamBossesChanged", EVENT_BOSSES_CHANGED, function()
+        if (KyzuiWhen.savedOptions.colossus.bossOnly) then
+            if (DoesUnitExist("boss1")) then
+                KW_ChatSpam.RegisterColossus(KyzuiWhen.savedOptions.colossus.enable)
+            else
+                KW_ChatSpam.RegisterColossus(false)
+            end
         end
+    end)
 
-        KyzuiWhen:dbg(string.format("|c888888%s |cAAFFAA%d|r", KW_ChatSpam.pointReason[scoreUpdateReason], scoreAmount))
-    end
+    KW_ChatSpam.CheckActivation()
 end
 
-function KW_ChatSpam.stripSuffix(unitName)
-    local index = string.find(unitName, "^", 1, true)
-    if (index) then
-        return string.sub(unitName, 1, index - 1)
-    else
-        return unitName
-    end
-end
