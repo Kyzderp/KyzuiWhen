@@ -29,10 +29,28 @@ KW_ChatSpam = {
         [17] = "SOLO_ARENA_COMPLETE",
     },
 
+    -- Trial/Group Arena zoneIds
+    TRIAL_ZONEIDS = {
+        [635 ] = true,  -- Dragonstar Arena
+        [636 ] = true,  -- Hel Ra Citadel
+        [638 ] = true,  -- Aetherian Archive
+        [639 ] = true,  -- Sanctum Ophidia
+        -- [677 ] = true,  -- Maelstrom Arena
+        [725 ] = true,  -- Maw of Lorkhaj
+        [975 ] = true,  -- Halls of Fabrication
+        [1000] = true,  -- Asylum Sanctorium
+        [1051] = true,  -- Cloudrest
+        [1082] = true,  -- Blackrose Prison
+        [1121] = true,  -- Sunspire
+        [1196] = true,  -- Kyne's Aegis
+    },
+
     -- My personal preset for Alkosh spam. Hides the Alkosh spam in these zone IDs
     hideAlkoshZones = {
         [1082] = true, -- Blackrose Prison
     },
+
+    previousZone = 0,
 }
 
 ---------------------------------------------------------------------
@@ -46,6 +64,18 @@ local function stripSuffix(unitName)
     else
         return unitName
     end
+end
+
+function KW_ChatSpam.displayRainbowWarning(message)
+    local chatWarning = "|cFF0000W" ..
+                        "|cFF7F00A" ..
+                        "|cFFFF00R" ..
+                        "|c00FF00N" ..
+                        "|c0000FFI" ..
+                        "|c2E2B5FN" ..
+                        "|c8B00FFG" ..
+                        "|cFF00FF: " .. message .. "|r"
+    KyzuiWhen:dbg(chatWarning)
 end
 
 
@@ -186,6 +216,37 @@ end
 -- ZONE ENTERED
 ---------------------------------------------------------------------
 
+local function OnZoneEntered(zoneId)
+    -- Ignore if in the same zone, i.e. going through doors counts
+    if (KW_ChatSpam.previousZone == zoneId) then
+        return
+    end
+    KW_ChatSpam.previousZone = zoneId
+
+    -- Not enabled
+    if (not KyzuiWhen.savedOptions.addons.enable) then
+        return
+    end
+
+    -- Blackrose Prison (1082)
+    if (zoneId == 1082 and not BRHelper) then
+        KW_ChatSpam.displayRainbowWarning("BRHelper is not enabled!")
+    end
+
+    -- Asylum Sanctorium (1000)
+    if (zoneId == 1000 and not AsylumNotifier) then
+        KW_ChatSpam.displayRainbowWarning("Asylum Sanctorium Status Panel is not enabled!")
+    end
+    if (zoneId == 1000 and not AsylumTracker) then
+        KW_ChatSpam.displayRainbowWarning("Asylum Tracker is not enabled!")
+    end
+
+    -- Check Hodor in group trials/arenas
+    if (KW_ChatSpam.TRIAL_ZONEIDS[zoneId] and not HodorReflexes) then
+        KW_ChatSpam.displayRainbowWarning("HodorReflexes is not enabled!")
+    end
+end
+
 function KW_ChatSpam.CheckActivation()
     local zoneId = GetZoneId(GetUnitZoneIndex("player"))
     KyzuiWhen:dbg(string.format("|cAAAAAAChecking activation... %s (%d)|r", GetZoneNameById(zoneId), zoneId))
@@ -205,7 +266,7 @@ function KW_ChatSpam.CheckActivation()
     -- Score
     KW_ChatSpam.RegisterScore(KyzuiWhen.savedOptions.score.enable)
 
-    -- [10:08:08] [KW] Checking activation... Blackrose Prison (1082)
+    OnZoneEntered(zoneId)
 end
 
 ---------------------------------------------------------------------

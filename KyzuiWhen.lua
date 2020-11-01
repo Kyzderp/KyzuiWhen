@@ -29,6 +29,9 @@ local defaultOptions = {
     reticle = {
         enable = true,
     },
+    addons = {
+        enable = true,
+    },
 }
 
 local defaultValues = {
@@ -105,6 +108,7 @@ function KyzuiWhen.handleCommand(argString)
         KyzuiWhen:dbg(string.format("itemnotready: %s", KyzuiWhen.savedOptions.block.itemNotReady and "|c00FF00on|r" or "|cFF0000off|r"))
         KyzuiWhen:dbg(string.format("score: %s", KyzuiWhen.savedOptions.score.enable and "|c00FF00on|r" or "|cFF0000off|r"))
         KyzuiWhen:dbg(string.format("reticle: %s", KyzuiWhen.savedOptions.reticle.enable and "|c00FF00on|r" or "|cFF0000off|r"))
+        KyzuiWhen:dbg(string.format("addons: %s", KyzuiWhen.savedOptions.addons.enable and "|c00FF00on|r" or "|cFF0000off|r"))
         return
     end
 
@@ -150,6 +154,11 @@ function KyzuiWhen.handleCommand(argString)
     elseif (args[1] == "reticle") then
         KyzuiWhen.savedOptions.reticle.enable = not KyzuiWhen.savedOptions.reticle.enable
         KyzuiWhen:dbg("In-combat reticle is now " .. tostring(KyzuiWhen.savedOptions.reticle.enable))
+
+    -- Toggle addons warning
+    elseif (args[1] == "addons") then
+        KyzuiWhen.savedOptions.addons.enable = not KyzuiWhen.savedOptions.addons.enable
+        KyzuiWhen:dbg("Enable addon reminder is now " .. tostring(KyzuiWhen.savedOptions.addons.enable))
 
     -- Unknown
     else
