@@ -116,9 +116,9 @@ local function OnEffectColossus(_, changeType, _, _, unitTag, beginTime, endTime
     end
 
     if (changeType == EFFECT_RESULT_GAINED) then
-        KyzuiWhen:dbg(string.format("%s%s|r |cFF0000gained|r Invulnerability", targetColor, stripSuffix(unitName)))
+        KyzuiWhen:dbg(string.format("%s%s|r |cFF0000gained|r Major Vulnerability", targetColor, stripSuffix(unitName)))
     elseif (changeType == EFFECT_RESULT_FADED) then
-        KyzuiWhen:dbg(string.format("%s%s|r |c00FF00lost|r Invulnerability", targetColor, stripSuffix(unitName)))
+        KyzuiWhen:dbg(string.format("%s%s|r |c00FF00lost|r Major Vulnerability", targetColor, stripSuffix(unitName)))
     end
 
     KW_ChatSpam.unitIds[unitId] = unitName
@@ -166,7 +166,7 @@ function KW_ChatSpam.RegisterAlkosh(register)
 
         -- Magsteal for cache
         EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED, OnEffect)
-        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 39100)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamMagsteal", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 88401)
         KyzuiWhen:dbg("Registered Alkosh")
     elseif (not register and KW_ChatSpam.activeEvents.alkosh) then
         EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamAlkosh", EVENT_COMBAT_EVENT)
@@ -179,7 +179,7 @@ end
 function KW_ChatSpam.RegisterColossus(register)
     if (register and not KW_ChatSpam.activeEvents.colossus) then
         EVENT_MANAGER:RegisterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED, OnEffectColossus)
-        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 132831)
+        EVENT_MANAGER:AddFilterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 106754)
         KyzuiWhen:dbg("Registered Colossus")
     elseif (not register and KW_ChatSpam.activeEvents.colossus) then
         EVENT_MANAGER:UnregisterForEvent(KyzuiWhen.name .. "KW_ChatSpamColossus", EVENT_EFFECT_CHANGED)
